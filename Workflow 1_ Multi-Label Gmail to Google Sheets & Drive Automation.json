@@ -1,0 +1,592 @@
+{
+  "name": "Workflow 1: Multi-Label Gmail to Google Sheets & Drive Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        }
+      },
+      "id": "86a87a61-2222-4da8-80cd-7d51523dfc31",
+      "name": "Cron",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        -384,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Access all input items\nconst results = items.map(item => {\n  const $json = item.json;\n\n  const labels = ($json.labels || []).map(l => l.name).join(', ') || '';\n  const snippet = $json.snippet || '';\n  const messageId = $json.id || '';\n  const subject = $json.Subject || 'No Subject';\n\n  // Extract sender\n  const fromRaw = $json.From || '';\n  const fromMatch = fromRaw.match(/\"?([^\"<]*)\"?\\s*<?([^<>]+)>?/);\n  const fromName = fromMatch?.[1]?.trim() || 'Unknown Sender';\n  const fromEmail = fromMatch?.[2]?.trim() || 'unknown@example.com';\n\n  // Date\n  const date = $json.internalDate\n    ? new Date(Number($json.internalDate)).toISOString().split('T')[0]\n    : 'Unknown Date';\n\n  // Attachment detection (improved)\n  const hasAttachments = Array.isArray($json.payload?.parts) &&\n    $json.payload.parts.some(part =>\n      part.filename &&\n      part.filename.trim() !== '' &&\n      part.body?.attachmentId\n    );\n\n  // Compose message string\n  const message = `From: ${fromName} <${fromEmail}>\\nSubject: ${subject}\\nLabels: ${labels}\\nDate: ${date}\\nSnippet: ${snippet}`;\n\n  // Return one result per input item\n  return {\n    json: {\n      fromName,\n      fromEmail,\n      subject,\n      labels,\n      date,\n      hasAttachments,\n      snippet,\n      messageId,\n      message,\n    }\n  };\n});\n\n// Return all results\nreturn results;\n"
+      },
+      "id": "2d32a4cc-8fab-497b-84f6-c5d09e0c38bf",
+      "name": "Prep Email Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1TDgAgwH7uQNeJwSR96F2p-UqQqCUpgWDAuwdCVlRAGc",
+          "mode": "list",
+          "cachedResultName": "(Append)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1TDgAgwH7uQNeJwSR96F2p-UqQqCUpgWDAuwdCVlRAGc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1TDgAgwH7uQNeJwSR96F2p-UqQqCUpgWDAuwdCVlRAGc/edit#gid=0"
+        },
+        "dataMode": "autoMapInputData",
+        "options": {}
+      },
+      "id": "8a603bd8-4af8-4441-9526-e9266bb0779d",
+      "name": "Google Sheets (Append)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 3,
+      "position": [
+        416,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ABclC0yBdV44LXVG",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {
+          "reset": false
+        }
+      },
+      "id": "e80babcf-7cce-46bc-ad4b-bfc467909b80",
+      "name": "Split In Batches (Emails)1",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "position": [
+        16,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 1,
+        "filters": {
+          "receivedBefore": "2025-08-07T16:23:31"
+        }
+      },
+      "id": "5b33f8ff-5148-4285-bc33-7010f91ed90a",
+      "name": "Get many simplify",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        -176,
+        0
+      ],
+      "webhookId": "dd9a9759-b5d0-4b71-91a3-882c84448db1",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "5RpwnRg1z9VaHVzv",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "804a2c9d-f361-4142-ac95-0b645db8ebf8",
+              "leftValue": "={{ $('Getgmail').item.binary }}",
+              "rightValue": "=",
+              "operator": {
+                "type": "object",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        -64,
+        304
+      ],
+      "id": "af146e7a-d4b0-4712-8c54-8a8be57a1ea0",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "99d65bed-f9af-42e3-a38d-9ad264364255",
+              "name": "attachments",
+              "value": "={{  $('Get a message').item.binary.keys() }}",
+              "type": "array"
+            },
+            {
+              "id": "7291df75-48b5-4006-aebd-e57359c44073",
+              "name": "message_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        288,
+        160
+      ],
+      "id": "51a3e10a-4599-44dc-a3db-dc9639588e2b",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "attachments",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        432,
+        160
+      ],
+      "id": "85d8a1fa-f51b-4769-b49f-fef84457a407",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "advanced": true,
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "message_id",
+              "field2": "id"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        608,
+        288
+      ],
+      "id": "17668554-3d09-4554-8fa2-373d1debaa4f",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 1,
+        "simple": false,
+        "filters": {
+          "receivedAfter": "2025-08-06T15:25:19"
+        },
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -224,
+        304
+      ],
+      "id": "116d2be1-aa18-415a-a308-2945cb7d13a4",
+      "name": "Getgmail",
+      "webhookId": "521429f9-8241-49e9-a31d-ad796b5b76e6",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "5RpwnRg1z9VaHVzv",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "name": "={{ $json.date }}_{{ $json.labels }}_{{ $json.fromEmail }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1ZHBdoukJVp1jj7dYdIar4T8Yrkx8rpk8",
+          "mode": "list",
+          "cachedResultName": "gmail files",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1ZHBdoukJVp1jj7dYdIar4T8Yrkx8rpk8"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        784,
+        -16
+      ],
+      "id": "3ec189ac-91e6-444f-94ab-d75f829a8b09",
+      "name": "Create folder",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "BzZ4VedHF9MAaLmr",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputDataFieldName": "={{ $json.attachments }}",
+        "name": "={{ $('Merge').item.binary[$('Merge').item.json.attachments].fileName }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Create folder').item.json.id }}",
+          "mode": "id"
+        },
+        "options": {
+          "simplifyOutput": false
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1264,
+        224
+      ],
+      "id": "05482f9b-3ced-434c-b256-0c824ca1d891",
+      "name": "Upload file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "BzZ4VedHF9MAaLmr",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1088,
+        224
+      ],
+      "id": "9911b370-31f7-44d2-8600-9951eeeb44e8",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "messageId": "={{ $json.id }}",
+        "simple": false,
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        112,
+        304
+      ],
+      "id": "cdc4c832-bb67-4635-86e4-b5718fa13d0e",
+      "name": "Get a message",
+      "webhookId": "c6fd10a7-9519-4f90-8d29-1f5fcc8f9973",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "5RpwnRg1z9VaHVzv",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        784,
+        160
+      ],
+      "id": "0c66f169-d7d5-40c5-8519-15b07a7afb6d",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b5e99c3f-8ed0-4bc0-bb66-33d9221d4463",
+              "leftValue": "={{ $json.hasAttachments }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "63cfb54b-867a-403a-ad61-7eace85ea32e",
+              "leftValue": "={{ $json.hasAttachments }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        608,
+        0
+      ],
+      "id": "d3db089d-ae6c-4bcd-8652-a532a083b3e7",
+      "name": "If"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Cron": {
+      "main": [
+        [
+          {
+            "node": "Get many simplify",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Getgmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep Email Data": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets (Append)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets (Append)": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split In Batches (Emails)1": {
+      "main": [
+        [
+          {
+            "node": "Prep Email Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many simplify": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches (Emails)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Get a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Getgmail": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create folder": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a message": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "No Operation, do nothing": {
+      "main": [
+        []
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Create folder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "ba94635c-40e9-4489-aab7-7445e8c4f996",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1e0bce84c557729f55690229816db0b3114e70c200e1fc0845e78875817b0473"
+  },
+  "id": "2UEG7ceo6UPaQHRv",
+  "tags": []
+}

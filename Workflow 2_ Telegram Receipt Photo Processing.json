@@ -1,0 +1,374 @@
+{
+  "name": "Workflow 2: Telegram Receipt Photo Processing",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {
+          "download": true
+        }
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -496,
+        32
+      ],
+      "id": "0cc0a16d-ca4e-4015-8ec5-41d87dff91f3",
+      "name": "Telegram Trigger",
+      "webhookId": "367c5586-7250-4472-979b-62c0adb4d6e2",
+      "credentials": {
+        "telegramApi": {
+          "id": "51BSCEdbnCTZfmJo",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        144,
+        -16
+      ],
+      "id": "a90b9d77-a546-4685-bf3c-175d6d91faa0",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "JS9qt5mbZGb9yYWp",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.ocr.space/parse/image",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "K82444745888957"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -160,
+        -48
+      ],
+      "id": "70f7045d-a334-4c59-b5b5-1d73bddaaecc",
+      "name": "image analyze"
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.ParsedResults[0].ParsedText }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "storename",
+              "description": "store name"
+            },
+            {
+              "name": "personName",
+              "description": "name"
+            },
+            {
+              "name": "location",
+              "description": "location"
+            },
+            {
+              "name": "invoice number",
+              "description": "invoice"
+            },
+            {
+              "name": "amount",
+              "description": "amount"
+            },
+            {
+              "name": "date",
+              "description": "date"
+            }
+          ]
+        },
+        "options": {
+          "systemPromptTemplate": "extract key details "
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1,
+      "position": [
+        48,
+        -144
+      ],
+      "id": "6efd6e94-b8f1-478b-b29c-99bbd92f4f63",
+      "name": "Information Extractor2"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1dPKPs0TjRZ6KlHo5bcFmKj14bPRnJcN8abmJTfyiNCs",
+          "mode": "list",
+          "cachedResultName": "telegram",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dPKPs0TjRZ6KlHo5bcFmKj14bPRnJcN8abmJTfyiNCs/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dPKPs0TjRZ6KlHo5bcFmKj14bPRnJcN8abmJTfyiNCs/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "storename": "={{ $json.output.storename }}",
+            "personName": "={{ $json.output.personName }}",
+            "location": "={{ $json.output.location }}",
+            "invoice number": "={{ $json.output[\"invoice number\"] }}",
+            "amount": "={{ $json.output.amount }}",
+            "date": "={{ $json.output.date }}"
+          },
+          "matchingColumns": [
+            "storename"
+          ],
+          "schema": [
+            {
+              "id": "storename",
+              "displayName": "storename",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "personName",
+              "displayName": "personName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "location",
+              "displayName": "location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "invoice number",
+              "displayName": "invoice number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "amount",
+              "displayName": "amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        384,
+        -48
+      ],
+      "id": "70694323-3e0e-458c-b4d8-59e1551daa8d",
+      "name": "Append or update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ABclC0yBdV44LXVG",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "={{ $json.date }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1wcJUxXp5HgIN3Aadg3PMvnGiAIA-stpq",
+          "mode": "list",
+          "cachedResultName": "Telegram",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1wcJUxXp5HgIN3Aadg3PMvnGiAIA-stpq"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        64,
+        160
+      ],
+      "id": "4ec0ffdb-b422-447c-914e-db8963baf1b6",
+      "name": "Upload file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "BzZ4VedHF9MAaLmr",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -112,
+        160
+      ],
+      "id": "91dec811-f822-437f-a686-7c3d1fb8d3e2",
+      "name": "Merge"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "image analyze",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "image analyze": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor2": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file": {
+      "main": [
+        []
+      ]
+    },
+    "Append or update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d7e81c1c-0aa5-4347-8777-d61a91b01609",
+  "meta": {
+    "templateId": "self-building-ai-agent",
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1e0bce84c557729f55690229816db0b3114e70c200e1fc0845e78875817b0473"
+  },
+  "id": "hx4pNN1YuwVKJa6v",
+  "tags": []
+}
